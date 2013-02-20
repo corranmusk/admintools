@@ -1,0 +1,87 @@
+#!/usr/bin/perl
+# @(#)fci 2012-02-20 C.Musk
+#
+#
+# Check in for rudimentary file-based RCS
+#
+use strict;
+use File::Copy;
+
+my $debug=0;
+my $oldfolder=0;
+my $oldfoldername="OLD";
+
+# check number of arguments
+print $#ARGV." arguments (less one!)\n" if ($debug);
+unless ($#ARGV>=0) {
+	&usage;
+	exit 1;
+}
+
+#check OLD folder exists but does not create yet
+if (-e $oldfoldername && -d $oldfoldername){
+	$oldfolder=1;
+	print "OLD folder exits\n" if ($debug);
+}
+# get current time
+my @now=localtime();
+# generate file extenstion based on date
+my $ext=$now[5];
+# take off 100 since it is years since 1970
+if ($ext>99) {$ext-=100}
+# Add in extra zero for formatting purposes
+$ext.=0 if ($now[4]<9);
+$ext.=$now[4]+1;
+$ext.=0 if ($now[3]<10);
+$ext.=$now[3];
+# generate a time extension in case of duplicates
+# lots of formatting for extra zeroes
+my $timeExt="";
+if ($now[2]<10){
+	$timeExt="0";
+} 
+$timeExt.=$now[2];
+if ($now[1]<10){
+	$timeExt.="0";
+} 
+$timeExt.=$now[1];
+if ($now[0]<10){
+	$timeExt.="0";
+} 
+$timeExt.=$now[0];
+# start processing the files...
+foreach my $file (@ARGV){
+	print "Processing $file...\n" if ($debug);
+	# check the file actually exists
+	unless (-e $file){
+		print "\t $file does not exist!\n";
+		next;
+	}
+	# check if the old folder exists
+	unless ($oldfolder){
+		# it doesn't so try to create it
+		if (mkdir $oldfoldername){
+			# all's good!
+			$oldfolder=1;
+		} else {
+			# failed to make it - warn and exit
+			print "Cannot make old folder!\n";
+			exit 255;
+		}
+	}
+	# generate new file name
+	my $newfilename="OLD/$file.$ext";
+	print $newfilename if ($debug);
+	# add time extension if it already exists
+	$newfilename.=$timeExt if (-e $newfilename);
+	# copy into place
+	if (copy ($file, "$newfilename")) {
+		print "\t copied $file to $newfilename\n"
+	};
+}
+
+sub usage {
+	# basic usage info
+	print "usage:\n";
+	print "\tfci filename\n";
+}
